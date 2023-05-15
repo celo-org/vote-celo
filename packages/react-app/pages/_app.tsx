@@ -1,7 +1,7 @@
-import "../styles/globals.css";
+import { Alfajores, CeloProvider } from "@celo/react-celo";
+import "@celo/react-celo/lib/styles.css";
 import type { AppProps } from "next/app";
-import { CeloProvider, Alfajores } from '@celo/react-celo';
-import '@celo/react-celo/lib/styles.css';
+import "../styles/globals.css";
 
 import Layout from "../components/Layout";
 
@@ -9,10 +9,11 @@ function App({ Component, pageProps }: AppProps) {
   return (
     <CeloProvider
       dapp={{
-        name: 'celo-composer dapp',
-        description: 'My awesome celo-composer description',
-        url: 'https://example.com',
-        icon: 'https://example.com/favicon.ico',
+        name: "Celo Vote",
+        description: "Voting dApp for Celo Governance",
+        url: "https://example.com",
+        icon: "https://example.com/favicon.ico",
+        walletConnectProjectId: "f597db9e215becf1a4b24a7154c26fa2",
       }}
       defaultNetwork={Alfajores.name}
       connectModal={{
@@ -23,7 +24,7 @@ function App({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
       </Layout>
     </CeloProvider>
-  )
+  );
 }
 
 export default App;
