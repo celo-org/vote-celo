@@ -28,7 +28,6 @@ export const getAllProposals = async () => {
       return getProposalGithubData(record);
     })
   );
-  console.log("data::: ", data);
   return data;
 };
 

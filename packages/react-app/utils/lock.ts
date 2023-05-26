@@ -1,16 +1,15 @@
 import { defaultBalances } from "@/pages/lock";
-import { ContractKit } from "@celo/contractkit";
-import { toWei } from "./helper";
+import { WrapperCache } from "@celo/contractkit/lib/contract-cache";
 import { AccountSummary, Balance } from "./types/lock.type";
 
 export const fetchLockedSummary = async (
-  kit: ContractKit,
+  contractsCache: WrapperCache,
   address: string | undefined
 ): Promise<AccountSummary | undefined> => {
   if (!address) {
     return;
   }
-  const locked = await kit.contracts.getLockedGold();
+  const locked = await contractsCache.getLockedGold();
   try {
     var accountTotalLockedGold = await locked.getAccountTotalLockedGold(
       address
@@ -30,7 +29,7 @@ export const fetchLockedSummary = async (
 };
 
 export const fetchBalances = async (
-  kit: ContractKit,
+  contractsCache: WrapperCache,
   address: string | undefined
 ): Promise<Balance> => {
   if (!address) {
@@ -38,34 +37,33 @@ export const fetchBalances = async (
   }
 
   const [celoContract, cusdContract] = await Promise.all([
-    kit.contracts.getGoldToken(),
-    kit.contracts.getStableToken(),
+    contractsCache.getGoldToken(),
+    contractsCache.getStableToken(),
   ]);
 
   const [celo, cusd] = await Promise.all([
     celoContract.balanceOf(address),
     cusdContract.balanceOf(address),
   ]);
-  console.log("celo", celo);
-  console.log("cusd", cusd);
   return {
     celo,
     cusd,
   };
 };
 
-export const lockCelo = async (kit: ContractKit, lockAmount: string) => {
+export const lockCelo = async (
+  contractsCache: WrapperCache,
+  lockAmount: string,
+  address: string | undefined
+) => {
   try {
-    const lockedCelo = await kit.contracts.getLockedGold();
-    console.log("lockedCelo", lockedCelo);
+    const lockedCelo = await contractsCache.getLockedGold();
     const txObj = lockedCelo.lock();
-    console.log("txObj", txObj);
-    const txResult = await txObj.send({ value: toWei(lockAmount) });
+    const txResult = await txObj.send({
+      value: lockAmount,
+    });
     const txHash = await txResult.getHash();
-    console.log("txHash", txHash);
     const txReceipt = await txResult.waitReceipt();
-    console.log("txReceipt", txReceipt);
-    console.log("CELO locked");
   } catch (e) {
     console.log(e);
   }
