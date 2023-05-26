@@ -3,9 +3,10 @@ import { newKit } from "@celo/contractkit";
 import { concurrentMap } from "@celo/utils/lib/async";
 import { BigNumber } from "bignumber.js";
 import matter from "gray-matter";
+import { RPC_ENDPOINT } from "./envConfig";
 
 export const getAllProposals = async () => {
-  const kit = newKit("https://forno.celo.org");
+  const kit = newKit(RPC_ENDPOINT);
   const governance = await kit.contracts.getGovernance();
 
   const queue = await governance.getQueue();
@@ -32,7 +33,7 @@ export const getAllProposals = async () => {
 };
 
 export const getProposal = async (proposalId: string) => {
-  const kit = newKit("https://forno.celo.org");
+  const kit = newKit(RPC_ENDPOINT);
   const governance = await kit.contracts.getGovernance();
   const record = await getProposalData({
     governance,
@@ -59,33 +60,48 @@ export const getProposalGithubData = async (
   record: Record,
   mainContent?: boolean
 ): Promise<Proposal> => {
-  var githubDescriptionUrl = record.metadata.descriptionURL;
-  var response = await fetch(
-    (githubDescriptionUrl as string)
-      .replace("https://github.com", "https://raw.githubusercontent.com")
-      .replace("blob", "")
-  );
-  if (!response.ok) {
-    throw new Error("Network response was not ok");
-  }
-  const markdownContent = await response.text();
-  const parsedContent = matter(markdownContent);
-  // return githubData: parsedContent.data, record with type
-  return {
-    record: {
-      ...record,
-      upvotes: record.upvotes.toString(),
-      proposalID: record.proposalID.toString(),
-      metadata: {
-        ...record.metadata,
-        deposit: record.metadata.deposit.toString(),
-        timestamp: record.metadata.timestamp.toString(),
+  try {
+    var githubDescriptionUrl = record.metadata.descriptionURL;
+    var response = await fetch(
+      (githubDescriptionUrl as string)
+        .replace("https://github.com", "https://raw.githubusercontent.com")
+        .replace("blob", "")
+    );
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const markdownContent = await response.text();
+    const parsedContent = matter(markdownContent);
+    // return githubData: parsedContent.data, record with type
+    return {
+      record: {
+        ...record,
+        upvotes: record.upvotes.toString(),
+        proposalID: record.proposalID.toString(),
+        metadata: {
+          ...record.metadata,
+          deposit: record.metadata.deposit.toString(),
+          timestamp: record.metadata.timestamp.toString(),
+        },
       },
-    },
-    githubData: {
-      ...(parsedContent.data as GithubData),
-      "date-created": parsedContent.data["date-created"].toString(),
-    },
-    mainContent: mainContent ? parsedContent.content : "",
-  };
+      githubData: {
+        ...(parsedContent.data as GithubData),
+        "date-created": parsedContent.data["date-created"].toString(),
+      },
+      mainContent: mainContent ? parsedContent.content : "",
+    };
+  } catch {
+    return {
+      record: {
+        ...record,
+        upvotes: record.upvotes.toString(),
+        proposalID: record.proposalID.toString(),
+        metadata: {
+          ...record.metadata,
+          deposit: record.metadata.deposit.toString(),
+          timestamp: record.metadata.timestamp.toString(),
+        },
+      },
+    };
+  }
 };

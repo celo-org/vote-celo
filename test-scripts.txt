@@ -1,0 +1,11 @@
+npx celocli account:list
+0x5409ED021D9299bf6814279A6A1411A7e866A631, 0x6Ecbe1DB9EF729CBe972C83Fb886247691Fb6beb
+npx celocli account:register --from 0x5409ED021D9299bf6814279A6A1411A7e866A631
+npx celocli account:register --from 0x6Ecbe1DB9EF729CBe972C83Fb886247691Fb6beb
+npx celocli lockedgold:lock --from 0x5409ED021D9299bf6814279A6A1411A7e866A631 --value 20000000000000000000
+npx celocli lockedgold:lock --from 0x6Ecbe1DB9EF729CBe972C83Fb886247691Fb6beb --value 20000000000000000000
+npx celocli governance:propose --jsonTransactions=testnet.json --deposit=100e18 --descriptionURL=https://gist.github.com/viral-sangani/15343f75a449887c8a86ed42a6c092a7 --from=0x5409ED021D9299bf6814279A6A1411A7e866A631
+npx celocli governance:show --proposalID 2
+npx celocli governance:upvote --proposalID 2 --from 0x5409ED021D9299bf6814279A6A1411A7e866A631
+npx celocli governance:vote --proposalID=2 --value Yes --from 0x5409ED021D9299bf6814279A6A1411A7e866A631
+npx celocli governance:execute --proposalID 2 --from 0x5409ED021D9299bf6814279A6A1411A7e866A631

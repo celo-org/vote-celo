@@ -1,5 +1,5 @@
 export interface Proposal {
-  githubData: GithubData;
+  githubData?: GithubData;
   record: Record;
   mainContent?: string;
 }

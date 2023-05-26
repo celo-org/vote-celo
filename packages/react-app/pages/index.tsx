@@ -29,8 +29,8 @@ const Home: React.FC<Props> = ({ proposals }) => {
                     <div className="flex flex-col items-start justify-center w-full border-2 border-black rounded-xl p-3">
                       <h2 className="font-bold inline-flex items-center">
                         #{new BigNumber(proposal.record.proposalID).toNumber()}{" "}
-                        {proposal.githubData.title}
-                        <Badge value="Upvoting" className="ml-2" />
+                        {proposal.githubData?.title}
+                        <Badge value={proposal.record.stage} className="ml-2" />
                       </h2>
                       <p className="text-xs text-gray-500 mt-2">
                         Proposed by {proposal.record.metadata.proposer}
