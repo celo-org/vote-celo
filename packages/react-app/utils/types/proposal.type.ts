@@ -1,3 +1,30 @@
+export enum ProposalStage {
+  None = "None",
+  Queued = "Queued",
+  Approval = "Approval",
+  Referendum = "Referendum",
+  Execution = "Execution",
+  Expiration = "Expiration",
+}
+
+export interface ProposalRecordMetadata {
+  proposer: `0x${string}`;
+  deposit: bigint;
+  timestamp: bigint;
+  transactionCount: bigint;
+  descriptionURL: string;
+}
+
+export interface QueuedProposals {
+  proposalIds: bigint[];
+  upvotes: bigint[];
+}
+
+export interface DequeuedProposals {
+  proposalIds: bigint[];
+}
+
+// ------------------------------------------------------------------
 export interface Proposal {
   githubData?: GithubData;
   record: Record;

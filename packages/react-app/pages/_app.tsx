@@ -1,32 +1,45 @@
-import { Alfajores, CeloProvider, Mainnet } from "@celo/react-celo";
-import "@celo/react-celo/lib/styles.css";
+import { Alfajores, Celo } from "@celo/rainbowkit-celo/chains";
+import celoGroups from "@celo/rainbowkit-celo/lists";
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import "@rainbow-me/rainbowkit/styles.css";
 import type { AppProps } from "next/app";
+import { configureChains, createConfig, WagmiConfig } from "wagmi";
+import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
+import Layout from "../components/Layout";
 import "../styles/globals.css";
 
-import { fullContractsCache } from "@/utils/buildContractsCache";
-import Layout from "../components/Layout";
+const projectId = "celo-composer-project-id"; // get one at https://cloud.walletconnect.com/app
+
+const { chains, publicClient } = configureChains(
+  [Alfajores, Celo],
+  [
+    jsonRpcProvider({
+      rpc: (chain) => ({ http: chain.rpcUrls.default.http[0] }),
+    }),
+  ]
+);
+
+const connectors = celoGroups({
+  chains,
+  projectId,
+  appName: (typeof document === "object" && document.title) || "Your App Name",
+});
+
+const wagmiConfig = createConfig({
+  autoConnect: true,
+  connectors,
+  publicClient: publicClient,
+});
 
 function App({ Component, pageProps }: AppProps) {
   return (
-    <CeloProvider
-      dapp={{
-        name: "Celo Vote",
-        description: "Voting dApp for Celo Governance",
-        url: "https://example.com",
-        icon: "https://example.com/favicon.ico",
-        walletConnectProjectId: "f597db9e215becf1a4b24a7154c26fa2",
-      }}
-      defaultNetwork={Alfajores.name}
-      networks={[Mainnet, Alfajores]}
-      connectModal={{
-        providersOptions: { searchable: true },
-      }}
-      buildContractsCache={fullContractsCache}
-    >
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
-    </CeloProvider>
+    <WagmiConfig config={wagmiConfig}>
+      <RainbowKitProvider chains={chains} coolMode={true}>
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
+      </RainbowKitProvider>
+    </WagmiConfig>
   );
 }
 
