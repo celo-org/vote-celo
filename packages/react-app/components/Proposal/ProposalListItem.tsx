@@ -1,10 +1,14 @@
 import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import Badge from "../Badge";
 type Props = {};
 
 const ProposalListItem = ({}: Props) => {
   return (
-    <div className="flex flex-row justify-between py-6 hover:cursor-pointer">
+    <Link
+      href="/proposals/0"
+      className="flex flex-row justify-between py-6 hover:cursor-pointer"
+    >
       <div className="flex flex-col">
         <div className="text-xs text-gray-500 mb-1">
           Proposal: ###### By: 0x23A3...A3F
@@ -34,7 +38,7 @@ const ProposalListItem = ({}: Props) => {
       <div className="self-center">
         <ArrowLongRightIcon className="w-8 h-8 text-gray-500" />
       </div>
-    </div>
+    </Link>
   );
 };
 
