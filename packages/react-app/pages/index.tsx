@@ -1,3 +1,5 @@
+import TextfieldWithIcon from "@/components/Form/TextfieldWithIcon";
+import ProposalListItem from "@/components/Proposal/ProposalListItem";
 import { useProposals } from "@/hooks/useProposals";
 import { Proposal } from "@/utils/types/proposal.type";
 import { useEffect } from "react";
@@ -14,10 +16,14 @@ const Home: React.FC<Props> = ({ proposals }) => {
   }, []);
   return (
     <div className="w-full mt-10">
-      <div className="flex flex-col">
-        <div className="flex flex-row">
-          <div className=" text-5xl">All Proposals</div>
+      <div className="flex flex-col divide-y divide-gray-300">
+        <div className="flex flex-row justify-between pb-6">
+          <div className="font-gtalpina font-thin text-5xl">All Proposals</div>
+          <TextfieldWithIcon />
         </div>
+        <ProposalListItem />
+        <ProposalListItem />
+        <ProposalListItem />
       </div>
     </div>
   );
