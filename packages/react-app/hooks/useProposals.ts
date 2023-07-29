@@ -1,32 +1,69 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { parseProposalRecord } from "@/helper/parseData";
 import { getAddressFromRegistry } from "@/helper/registry";
 import { governanceABI } from "@/utils/Celo";
 import {
   DequeuedProposals,
+  GithubData,
+  GovernanceConfig,
+  ProposalRecord,
   ProposalRecordMetadata,
   QueuedProposals,
+  VoteValue,
 } from "@/utils/types/proposal.type";
 import { valueToInt } from "@celo/contractkit/lib/wrappers/BaseWrapper";
 import { ProposalStage } from "@celo/contractkit/lib/wrappers/Governance";
 import {} from "@rainbow-me/rainbowkit";
-import { useState } from "react";
+import matter from "gray-matter";
+import { useEffect, useState } from "react";
 import { readContracts } from "wagmi";
+import { ProposalSchedule } from "./../utils/types/proposal.type";
 
 interface Proposal {
   proposalMetadata: ProposalRecordMetadata;
   proposalStage: ProposalStage;
-  upvotes?: bigint;
+  proposalGithubData: GithubData | null;
+  proposalSchedule: ProposalSchedule;
+  proposalRecord: ProposalRecord;
+  proposalId: string;
 }
 
 export const useProposals = () => {
   const [loading, setLoading] = useState(false);
-  const [allDequeuedProposals, setAllDequeuedProposals] = useState<any>([]);
+  const [governanceConfig, setGovernanceConfig] = useState<
+    GovernanceConfig | undefined
+  >();
+  const [allDequeuedProposals, setAllDequeuedProposals] = useState<Proposal[]>(
+    []
+  );
   const [allQueuedProposals, setAllQueuedProposals] = useState<any>([]);
   var governanceAddress: `0x${string}` | null = null;
 
+  useEffect(() => {
+    getGovernanceConfig();
+  }, []);
+
   const getAllProposals = async () => {
     try {
-      const govAddress = await getGovernanceAddress();
+      const dequeuedProposalsIds: DequeuedProposals = await getDequeue();
+      const dequeuedProposals = await Promise.all(
+        dequeuedProposalsIds.proposalIds.map(async (proposalId: bigint) => {
+          const proposal = await getProposal(proposalId.toString());
+          if (proposal) {
+            return proposal;
+          }
+        })
+      );
+      // removed all the undefined proposals
+      const filteredDequeuedProposals = dequeuedProposals.filter(
+        (proposal) => proposal !== undefined
+      ) as Proposal[];
+
+      // sort proposals w.r.t. proposal.proposalId
+      filteredDequeuedProposals.sort((a: Proposal, b: Proposal) => {
+        return parseInt(b.proposalId) - parseInt(a.proposalId);
+      });
+      setAllDequeuedProposals(filteredDequeuedProposals);
     } catch (error) {
       console.log("Error in getting all proposals ::>", error);
       throw error;
@@ -44,24 +81,114 @@ export const useProposals = () => {
         getProposalStage(proposalId),
       ]);
       if (proposalMetadata && proposalStage) {
-        var proposal: Proposal = {
+        const [proposalGithubData, proposalSchedule, proposalRecord] =
+          await Promise.all([
+            getProposalFromGithub(proposalMetadata.descriptionURL),
+            getProposalSchedule(proposalMetadata.timestamp, proposalStage),
+            getProposalRecord(proposalId, proposalStage),
+          ]);
+        return {
+          proposalId,
           proposalMetadata,
           proposalStage,
-        };
-        if (proposalStage === ProposalStage.Queued) {
-          const upvotes = await getUpvotes(proposalId);
-          proposal = {
-            ...proposal,
-            upvotes,
-          };
-        }
-        return {
-          ...proposal,
+          proposalGithubData,
+          proposalSchedule,
+          proposalRecord,
         };
       }
     } catch (error) {
       console.log("Error in getting proposal ::>", error);
       throw error;
+    }
+  };
+
+  const getProposalSchedule = async (
+    timestamp: bigint,
+    stage: ProposalStage
+  ): Promise<ProposalSchedule> => {
+    const config = await getGovernanceConfig();
+    if (stage == ProposalStage.Queued) {
+      const queueExpiry = config.queueExpiry;
+      const queueExpiration = BigInt(timestamp) + BigInt(queueExpiry ?? 0);
+      return {
+        [ProposalStage.Queued]: timestamp,
+        [ProposalStage.Expiration]: queueExpiration,
+      };
+    }
+
+    const durations = config.stageDurations;
+    const referendum = timestamp;
+    const execution = BigInt(referendum) + BigInt(durations!.Referendum);
+    const expiration = BigInt(execution) + BigInt(durations!.Execution);
+
+    return {
+      [ProposalStage.Referendum]: referendum,
+      [ProposalStage.Execution]: execution,
+      [ProposalStage.Expiration]: expiration,
+    };
+  };
+
+  const getProposalRecord = async (
+    proposalId: string,
+    stage: ProposalStage
+  ): Promise<ProposalRecord> => {
+    const govAddress = await getGovernanceAddress();
+    const record = {
+      passed: false,
+      approved: false,
+    };
+    if (stage === ProposalStage.Queued) {
+      const upvotes = await getUpvotes(proposalId);
+      return {
+        ...record,
+        upvotes,
+      };
+    } else if (
+      stage === ProposalStage.Referendum ||
+      stage === ProposalStage.Execution
+    ) {
+      const [passed, votes, approved] = await Promise.all([
+        readContracts({
+          contracts: [
+            {
+              address: govAddress,
+              abi: governanceABI,
+              functionName: "isProposalPassing",
+              args: [BigInt(proposalId)],
+            },
+          ],
+        }),
+        readContracts({
+          contracts: [
+            {
+              address: govAddress,
+              abi: governanceABI,
+              functionName: "getVoteTotals",
+              args: [BigInt(proposalId)],
+            },
+          ],
+        }),
+        readContracts({
+          contracts: [
+            {
+              address: govAddress,
+              abi: governanceABI,
+              functionName: "isApproved",
+              args: [BigInt(proposalId)],
+            },
+          ],
+        }),
+      ]);
+      return {
+        ...record,
+        passed: passed[0].result,
+        votes: {
+          [VoteValue.Yes]: votes[0].result ? votes[0].result[0] : BigInt(0),
+          [VoteValue.No]: votes[0].result ? votes[0].result[1] : BigInt(0),
+          [VoteValue.Abstain]: votes[0].result ? votes[0].result[2] : BigInt(0),
+        },
+        approved: approved[0].result,
+      };
     }
   };
 
@@ -85,8 +212,7 @@ export const useProposals = () => {
       if (response.error) {
         throw response.error;
       }
-      console.log("response.result", response.result);
-      return parseProposalRecord(response.result);
+      return parseProposalRecord(response.result, proposalId);
     } catch (error) {
       console.log("Error in getting proposal metadata ::>", error);
       throw error;
@@ -192,6 +318,107 @@ export const useProposals = () => {
     }
   };
 
+  const getGovernanceConfig = async (): Promise<GovernanceConfig> => {
+    if (governanceConfig !== undefined) {
+      return governanceConfig;
+    }
+    const govAddress = await getGovernanceAddress();
+    const [
+      concurrentProposals,
+      dequeueFrequency,
+      minDeposit,
+      queueExpiry,
+      stageDurations,
+      participationParameters,
+    ] = await Promise.all([
+      readContracts({
+        contracts: [
+          {
+            address: govAddress,
+            abi: governanceABI,
+            functionName: "concurrentProposals",
+          },
+        ],
+      }),
+      readContracts({
+        contracts: [
+          {
+            address: govAddress,
+            abi: governanceABI,
+            functionName: "dequeueFrequency",
+          },
+        ],
+      }),
+      readContracts({
+        contracts: [
+          {
+            address: govAddress,
+            abi: governanceABI,
+            functionName: "minDeposit",
+          },
+        ],
+      }),
+      readContracts({
+        contracts: [
+          {
+            address: govAddress,
+            abi: governanceABI,
+            functionName: "queueExpiry",
+          },
+        ],
+      }),
+      readContracts({
+        contracts: [
+          {
+            address: govAddress,
+            abi: governanceABI,
+            functionName: "stageDurations",
+          },
+        ],
+      }),
+      readContracts({
+        contracts: [
+          {
+            address: govAddress,
+            abi: governanceABI,
+            functionName: "getParticipationParameters",
+          },
+        ],
+      }),
+    ]);
+
+    const config: GovernanceConfig = {
+      concurrentProposals: concurrentProposals[0].result,
+      dequeueFrequency: dequeueFrequency[0].result,
+      minDeposit: minDeposit[0].result,
+      queueExpiry: queueExpiry[0].result,
+      stageDurations: {
+        Referendum: stageDurations[0].result
+          ? stageDurations[0].result[0]
+          : BigInt(0),
+        Execution: stageDurations[0].result
+          ? stageDurations[0].result[1]
+          : BigInt(0),
+      },
+      participationParameters: {
+        baseline: participationParameters[0].result
+          ? participationParameters[0].result[0]
+          : BigInt(0),
+        baselineFloor: participationParameters[0].result
+          ? participationParameters[0].result[1]
+          : BigInt(0),
+        baselineQuorumFactor: participationParameters[0].result
+          ? participationParameters[0].result[2]
+          : BigInt(0),
+        baselineUpdateFactor: participationParameters[0].result
+          ? participationParameters[0].result[3]
+          : BigInt(0),
+      },
+    };
+    setGovernanceConfig(config);
+    return config;
+  };
+
   const isQueuedProposalExpired = async (
     proposalId: string
   ): Promise<boolean> => {
@@ -244,6 +471,39 @@ export const useProposals = () => {
     }
   };
 
+  const getProposalFromGithub = async (
+    githubDescriptionUrl: string
+  ): Promise<GithubData | null> => {
+    try {
+      if (
+        !githubDescriptionUrl.includes("github.com") &&
+        !githubDescriptionUrl.includes("githubusercontent.com")
+      ) {
+        return null;
+      }
+      var response = await fetch(
+        (githubDescriptionUrl as string)
+          .replace("https://github.com", "https://raw.githubusercontent.com")
+          .replace("blob", "")
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const markdownContent = await response.text();
+      const parsedContent = matter(markdownContent);
+      return {
+        ...(parsedContent.data as GithubData),
+        mainContent: parsedContent.content,
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  // https://github.com/celo-org/celo-monorepo/blob/e884b03b5a30ccce927bb2effd2ade789c6de777/packages/sdk/contractkit/src/wrappers/Governance.ts#L551
+  // const getVoteRecordOfUser = (voter: string, proposalID: bigint): Promise<VoteRecord | null> => {
+  // }
+
   return {
     loading,
     isQueuedProposalExpired,
@@ -254,5 +514,7 @@ export const useProposals = () => {
     getDequeue,
     getProposalStage,
     getUpvotes,
+    allDequeuedProposals,
+    allQueuedProposals,
   };
 };

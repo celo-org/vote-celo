@@ -13,6 +13,7 @@ export interface ProposalRecordMetadata {
   timestamp: bigint;
   transactionCount: bigint;
   descriptionURL: string;
+  proposalId: string;
 }
 
 export interface QueuedProposals {
@@ -40,6 +41,7 @@ export interface GithubData {
   "discussions-to": string;
   "governance-proposal-id": string;
   "date-executed": string;
+  mainContent?: string;
 }
 
 export interface Record {
@@ -65,3 +67,72 @@ export interface ProposalElement {
   to: string;
   input: string;
 }
+
+type StageDurations<V> = {
+  [Stage in ProposalStage]: V;
+};
+
+type DequeuedStageDurations = Pick<
+  StageDurations<bigint>,
+  ProposalStage.Referendum | ProposalStage.Execution
+>;
+
+export interface ParticipationParameters {
+  baseline: bigint;
+  baselineFloor: bigint;
+  baselineUpdateFactor: bigint;
+  baselineQuorumFactor: bigint;
+}
+
+export interface GovernanceConfig {
+  concurrentProposals?: bigint;
+  dequeueFrequency?: bigint; // seconds
+  minDeposit?: bigint;
+  queueExpiry?: bigint;
+  stageDurations?: DequeuedStageDurations;
+  participationParameters?: ParticipationParameters;
+}
+
+export type ProposalSchedule =
+  | {
+      Queued: bigint;
+      Expiration: bigint;
+      Referendum?: undefined;
+      Execution?: undefined;
+    }
+  | {
+      Referendum: bigint;
+      Execution: bigint;
+      Expiration: bigint;
+      Queued?: undefined;
+    };
+
+export enum VoteValue {
+  None = "None",
+  Abstain = "Abstain",
+  No = "No",
+  Yes = "Yes",
+}
+
+export interface Votes {
+  [VoteValue.Abstain]: bigint;
+  [VoteValue.No]: bigint;
+  [VoteValue.Yes]: bigint;
+}
+
+export type ProposalRecord =
+  | {
+      upvotes: bigint;
+      passed: boolean;
+      approved: boolean;
+    }
+  | {
+      passed: boolean | undefined;
+      votes: {
+        Yes: bigint;
+        No: bigint;
+        Abstain: bigint;
+      };
+      approved: boolean | undefined;
+    }
+  | undefined;

@@ -1,11 +1,15 @@
 import { ProposalRecordMetadata } from "@/utils/types/proposal.type";
 
-export const parseProposalRecord = (data: any): ProposalRecordMetadata => {
+export const parseProposalRecord = (
+  data: any,
+  proposalId: string
+): ProposalRecordMetadata => {
   return {
-    proposer: data.result[0],
-    deposit: data.result[1],
-    timestamp: data.result[2],
-    transactionCount: data.result[3],
-    descriptionURL: data.result[4],
+    proposer: data[0],
+    deposit: data[1],
+    timestamp: data[2],
+    transactionCount: data[3],
+    descriptionURL: data[4],
+    proposalId,
   };
 };

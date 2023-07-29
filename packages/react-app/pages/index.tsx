@@ -9,10 +9,17 @@ interface Props {
 }
 
 const Home: React.FC<Props> = ({ proposals }) => {
-  const { getAllProposals, getProposal } = useProposals();
+  const { getDequeue, getAllProposals } = useProposals();
   useEffect(() => {
+    const getAll = async () => {
+      const proposals = await getAllProposals();
+      console.log(
+        "🚀 ~ file: index.tsx:16 ~ useEffect ~ proposals:",
+        proposals
+      );
+    };
+    getAll();
     // getAllProposals();
-    // getProposal("109");
   }, []);
   return (
     <div className="w-full mt-10">
