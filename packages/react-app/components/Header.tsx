@@ -6,7 +6,6 @@ import Image from "next/image";
 
 export default function Header() {
   const isMobile = useIsMobile();
-  console.log("🚀 ~ file: Header.tsx:9 ~ Header ~ isMobile:", isMobile);
   return (
     <Disclosure as="nav" className="bg-gypsum ">
       {({ open }) => (

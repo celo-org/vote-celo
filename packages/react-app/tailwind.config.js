@@ -7,8 +7,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        gtplpina: ["GTAlpina", "monospace"],
+        sans: ["var(--font-inter)"],
+        gtalpina: ["var(--font-alpina)"],
       },
       colors: {
         /** primary */
