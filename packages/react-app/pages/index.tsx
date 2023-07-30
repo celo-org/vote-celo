@@ -1,6 +1,4 @@
 import TextfieldWithIcon from "@/components/Form/TextfieldWithIcon";
-import ProposalListItem from "@/components/Proposal/ProposalListItem";
-import { useProposals } from "@/hooks/useProposals";
 import { Proposal } from "@/utils/types/proposal.type";
 import { useEffect } from "react";
 
@@ -9,18 +7,8 @@ interface Props {
 }
 
 const Home: React.FC<Props> = ({ proposals }) => {
-  const { getDequeue, getAllProposals } = useProposals();
-  useEffect(() => {
-    const getAll = async () => {
-      const proposals = await getAllProposals();
-      console.log(
-        "🚀 ~ file: index.tsx:16 ~ useEffect ~ proposals:",
-        proposals
-      );
-    };
-    getAll();
-    // getAllProposals();
-  }, []);
+  useEffect(() => {}, []);
+
   return (
     <div className="w-full mt-10">
       <div className="flex flex-col divide-y divide-gray-300">
@@ -28,9 +16,9 @@ const Home: React.FC<Props> = ({ proposals }) => {
           <div className="font-gtalpina font-thin text-5xl">All Proposals</div>
           <TextfieldWithIcon />
         </div>
-        <ProposalListItem />
-        <ProposalListItem />
-        <ProposalListItem />
+        {/* {allDequeuedProposals.map((proposal) => (
+          <ProposalListItem key={proposal.proposalId} />
+        ))} */}
       </div>
     </div>
   );

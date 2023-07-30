@@ -1,25 +1,21 @@
 import { registryABI } from "@/utils/Celo";
-import { readContracts } from "wagmi";
+import { Contract, providers } from "ethers";
 
 export const getAddressFromRegistry = async (module: string) => {
   try {
     const REGISTRY_CONTRACT_ADDRESS =
       "0x000000000000000000000000000000000000ce10";
+    const provider = new providers.JsonRpcProvider("https://forno.celo.org");
 
-    const governanceAddress = (
-      await readContracts({
-        contracts: [
-          {
-            address: REGISTRY_CONTRACT_ADDRESS,
-            abi: registryABI,
-            functionName: "getAddressForString",
-            args: [module],
-          },
-        ],
-      })
-    )[0];
-    if (governanceAddress.result) {
-      return governanceAddress.result;
+    const contract = new Contract(
+      REGISTRY_CONTRACT_ADDRESS,
+      registryABI,
+      provider
+    );
+    const governanceAddress = await contract.getAddressForString(module);
+
+    if (governanceAddress) {
+      return governanceAddress;
     } else {
       return null;
     }

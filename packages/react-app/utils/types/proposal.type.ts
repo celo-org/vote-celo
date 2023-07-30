@@ -26,11 +26,6 @@ export interface DequeuedProposals {
 }
 
 // ------------------------------------------------------------------
-export interface Proposal {
-  githubData?: GithubData;
-  record: Record;
-  mainContent?: string;
-}
 
 export interface GithubData {
   cgp: string;
@@ -136,3 +131,12 @@ export type ProposalRecord =
       approved: boolean | undefined;
     }
   | undefined;
+
+export interface Proposal {
+  proposalMetadata: ProposalRecordMetadata;
+  proposalStage: ProposalStage;
+  proposalGithubData: GithubData | null;
+  proposalSchedule: ProposalSchedule;
+  proposalRecord: ProposalRecord;
+  proposalId: string;
+}
