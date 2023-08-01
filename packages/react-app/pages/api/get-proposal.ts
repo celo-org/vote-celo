@@ -1,5 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import { getAllProposals } from "@/utils/proposals";
+import { getProposal } from "@/utils/proposals";
 import { Proposal } from "@/utils/types/proposal.type";
 import type { NextApiRequest, NextApiResponse } from "next";
 import NodeCache from "node-cache";
@@ -10,32 +10,35 @@ const cache = new NodeCache({
 });
 
 interface Data {
-  data: Proposal[] | null;
+  data: Proposal | null;
 }
 
 const replacer = (key: any, value: any) =>
   typeof value === "bigint" ? value.toString() : value;
 
 const handler = async (req: NextApiRequest, res: NextApiResponse<Data>) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const skip = (page - 1) * limit;
+  const proposalId = req.query.id as string;
+  if (!proposalId) {
+    return res.status(404).json({ data: null });
+  }
 
   try {
     const cachedProposals = (cache.get("allProposals") as Proposal[]) ?? [];
-    if (cachedProposals && cachedProposals.length >= skip + limit) {
-      const data = cachedProposals.slice(skip, skip + limit);
-      res
+    if (
+      cachedProposals &&
+      cachedProposals.find((p) => p.proposalId === proposalId)
+    ) {
+      // check if proposal is in cache
+      const proposal = cachedProposals.find((p) => p.proposalId === proposalId);
+      return res
         .status(200)
-        .json({ data: JSON.parse(JSON.stringify(data, replacer)) });
-      return;
+        .json({ data: JSON.parse(JSON.stringify(proposal, replacer)) });
     }
-    const allProposals = await getAllProposals(limit, skip);
-    if (allProposals) {
-      cache.set("allProposals", [...cachedProposals, ...allProposals]);
-      res
+    const proposal = await getProposal(proposalId);
+    if (proposal) {
+      return res
         .status(200)
-        .json({ data: JSON.parse(JSON.stringify(allProposals, replacer)) });
+        .json({ data: JSON.parse(JSON.stringify(proposal, replacer)) });
     }
     return res.status(404).json({ data: null });
   } catch (e) {}

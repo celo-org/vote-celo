@@ -27,16 +27,16 @@ export interface DequeuedProposals {
 
 // ------------------------------------------------------------------
 
-export interface GithubData {
-  cgp: string;
+export interface ProposalData {
+  cgp?: string;
   title: string;
-  "date-created": string;
-  author: string;
-  status: string;
+  "date-created"?: string;
+  author?: string;
+  status?: string;
   "discussions-to": string;
-  "governance-proposal-id": string;
-  "date-executed": string;
-  mainContent?: string;
+  "governance-proposal-id"?: string;
+  "date-executed"?: string;
+  mainContent: string;
 }
 
 export interface Record {
@@ -117,25 +117,21 @@ export interface Votes {
 
 export type ProposalRecord =
   | {
-      upvotes: bigint;
-      passed: boolean;
-      approved: boolean;
-    }
-  | {
-      passed: boolean | undefined;
-      votes: {
+      upvotes?: bigint;
+      passed: any;
+      votes?: {
         Yes: bigint;
         No: bigint;
         Abstain: bigint;
       };
-      approved: boolean | undefined;
+      approved: any;
     }
   | undefined;
 
 export interface Proposal {
   proposalMetadata: ProposalRecordMetadata;
   proposalStage: ProposalStage;
-  proposalGithubData: GithubData | null;
+  proposalData: ProposalData | null;
   proposalSchedule: ProposalSchedule;
   proposalRecord: ProposalRecord;
   proposalId: string;

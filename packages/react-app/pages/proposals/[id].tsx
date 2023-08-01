@@ -2,14 +2,44 @@ import Badge from "@/components/Badge";
 import InformationIcon from "@/components/CustomIcons/InformationIcon";
 import ResultIcon from "@/components/CustomIcons/ResultIcon";
 import VoteListItem from "@/components/Proposal/VoteListItem";
+import { formatTimestamp } from "@/utils/helper";
+import { Proposal } from "@/utils/types/proposal.type";
 import { ArrowLeftIcon, ArrowLongRightIcon } from "@heroicons/react/24/outline";
+import axios from "axios";
+import { BigNumber } from "ethers";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { ReactMarkdown } from "react-markdown/lib/react-markdown";
 
 type Props = {
   id: string;
 };
 
 const ProposalDetails = ({ id }: Props) => {
+  const [proposal, setProposal] = useState<Proposal | null>(null);
+
+  useEffect(() => {
+    console.log("id", id);
+    const fetchProposal = async () => {
+      const proposal = await axios({
+        method: "get",
+        url: `/api/get-proposal?id=${id}`,
+      });
+      const proposalData = await proposal.data;
+      setProposal(proposalData.data);
+      console.log(
+        "🚀 ~ file: [id].tsx:27 ~ fetchProposal ~ proposalData.data:",
+        proposalData.data
+      );
+    };
+
+    fetchProposal();
+  }, []);
+
+  if (!proposal) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="w-full mt-10">
       <div className="flex flex-col">
@@ -20,48 +50,37 @@ const ProposalDetails = ({ id }: Props) => {
           <ArrowLeftIcon className="h-4 w-4" />
           <span className="text-sm">Back</span>
         </Link>
+
         <div className="flex flex-row my-16">
           <div className="w-3/5 flex flex-col mr-12">
             <div className="text-sm font-light text-gray-500">
               Proposal: CGP{id}
             </div>
             <div className="font-gtalpina text-4xl font-thin mt-2">
-              cREAL Liquidity Incentive
+              {proposal.proposalData?.title}
             </div>
             <div className="flex flex-row items-center mt-3">
               <Badge value="Active" />
               <div className="text-sm font-light text-gray-500">
-                By: 0x23A3...A3F
+                By: {proposal.proposalMetadata.proposer.slice(0, 6)}...
+                {proposal.proposalMetadata.proposer.slice(-4)}
               </div>
             </div>
             <div className="mt-16 text-gray-500">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam, quis nostrud exercitation ullamco laboris
-              nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-              reprehenderit in voluptate velit esse cillum dolore eu fugiat
-              nulla pariatur. Excepteur sint occaecat cupidatat non proident,
-              sunt in culpa qui officia deserunt mollit anim id est laborum.
-            </div>
-            <div className="mt-6 text-gray-500">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam, quis nostrud exercitation ullamco laboris
-              nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-              reprehenderit in voluptate velit esse cillum dolore eu fugiat
-              nulla pariatur. Excepteur sint occaecat cupidatat non proident,
-              sunt in culpa qui officia deserunt mollit anim id est laborum.
+              <ReactMarkdown>
+                {`${proposal.proposalData?.mainContent}`}
+              </ReactMarkdown>
             </div>
             <div className="font-gtalpina text-4xl font-thin mt-16">
               Discussion
             </div>
             <Link
-              href="/proposals/0"
+              href={proposal.proposalData?.["discussions-to"] ?? "#"}
               className="flex flex-row justify-between py-6 hover:cursor-pointer border-b border-t mt-8 border-gray-300"
             >
               <div className="flex flex-col">
                 <div className="text-xs text-gray-500 mb-1">Celo Forum</div>
-                <div className="font-light">cREAL Liquidity Incentive</div>
+                <div className="font-light">{proposal.proposalData?.title}</div>
               </div>
 
               <div className="self-center">
@@ -88,11 +107,23 @@ const ProposalDetails = ({ id }: Props) => {
               </div>
               <div className="flex flex-row justify-between mt-7">
                 <span className="font-semibold">Start Date:</span>
-                <span className="font-light">Jan 12, 2023</span>
+                <span className="font-light">
+                  {formatTimestamp(
+                    BigNumber.from(
+                      proposal.proposalSchedule.Execution
+                    ).toNumber() * 1000
+                  )}
+                </span>
               </div>
               <div className="flex flex-row justify-between mt-1">
                 <span className="font-semibold">End Date:</span>
-                <span className="font-light">Jan 17, 2023</span>
+                <span className="font-light">
+                  {formatTimestamp(
+                    BigNumber.from(
+                      proposal.proposalSchedule.Expiration
+                    ).toNumber() * 1000
+                  )}
+                </span>
               </div>
             </div>
             <div className="bg-sand ml-12 p-10 flex flex-col">

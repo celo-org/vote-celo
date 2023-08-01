@@ -5,9 +5,9 @@ import { getAddressFromRegistry } from "@/helper/registry";
 import { governanceABI } from "@/utils/Celo";
 import {
   DequeuedProposals,
-  GithubData,
   GovernanceConfig,
   Proposal,
+  ProposalData,
   ProposalRecord,
   ProposalRecordMetadata,
   QueuedProposals,
@@ -16,6 +16,8 @@ import {
 import { valueToInt } from "@celo/contractkit/lib/wrappers/BaseWrapper";
 import { ProposalStage } from "@celo/contractkit/lib/wrappers/Governance";
 import {} from "@rainbow-me/rainbowkit";
+import axios from "axios";
+import { load } from "cheerio";
 import matter from "gray-matter";
 import { ProposalSchedule } from "./types/proposal.type";
 
@@ -66,7 +68,7 @@ export const getAllProposals = async (limit: number, skip: number) => {
   }
 };
 
-const getProposal = async (
+export const getProposal = async (
   proposalId: string
 ): Promise<Proposal | undefined> => {
   try {
@@ -75,9 +77,9 @@ const getProposal = async (
       getProposalStage(proposalId),
     ]);
     if (proposalMetadata && proposalStage) {
-      const [proposalGithubData, proposalSchedule, proposalRecord] =
+      const [proposalData, proposalSchedule, proposalRecord] =
         await Promise.all([
-          getProposalFromGithub(proposalMetadata.descriptionURL),
+          getProposalData(proposalMetadata.descriptionURL),
           getProposalSchedule(proposalMetadata.timestamp, proposalStage),
           getProposalRecord(proposalId, proposalStage),
         ]);
@@ -85,7 +87,7 @@ const getProposal = async (
         proposalId,
         proposalMetadata,
         proposalStage,
-        proposalGithubData,
+        proposalData,
         proposalSchedule,
         proposalRecord,
       };
@@ -139,7 +141,8 @@ const getProposalRecord = async (
     };
   } else if (
     stage === ProposalStage.Referendum ||
-    stage === ProposalStage.Execution
+    stage === ProposalStage.Execution ||
+    stage === ProposalStage.Expiration
   ) {
     const [passed, votes, approved] = await Promise.all([
       readContract(govAddress, governanceABI, "isProposalPassing", [
@@ -338,30 +341,45 @@ const getUpvotes = async (proposalId: string): Promise<bigint> => {
   }
 };
 
-const getProposalFromGithub = async (
-  githubDescriptionUrl: string
-): Promise<GithubData | null> => {
+const getProposalData = async (
+  descriptionUrl: string
+): Promise<ProposalData | null> => {
   try {
     if (
-      !githubDescriptionUrl.includes("github.com") &&
-      !githubDescriptionUrl.includes("githubusercontent.com")
+      descriptionUrl.includes("github.com") ||
+      descriptionUrl.includes("githubusercontent.com")
     ) {
+      var response = await fetch(
+        (descriptionUrl as string)
+          .replace("https://github.com", "https://raw.githubusercontent.com")
+          .replace("blob", "")
+      );
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const markdownContent = await response.text();
+      const parsedContent = matter(markdownContent);
+      return {
+        ...(parsedContent.data as ProposalData),
+        mainContent: parsedContent.content,
+      };
+    } else if (descriptionUrl.includes("forum.celo")) {
+      const response = await axios.get(descriptionUrl);
+      const html = response.data;
+      const $ = load(html);
+      const rawBody = $("#post_1 .cooked");
+      console.log("🚀 ~ file: proposals.ts:372 ~ rawBody:", rawBody.text());
+      const title = $("#topic-title > h1 > a");
+      // console.log("🚀 ~ file: proposals.ts:392 ~ title:", title);
+
+      return {
+        title: title.text().trim(),
+        mainContent: "rawBody.text().trim()",
+        "discussions-to": descriptionUrl,
+      };
+    } else {
       return null;
     }
-    var response = await fetch(
-      (githubDescriptionUrl as string)
-        .replace("https://github.com", "https://raw.githubusercontent.com")
-        .replace("blob", "")
-    );
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-    const markdownContent = await response.text();
-    const parsedContent = matter(markdownContent);
-    return {
-      ...(parsedContent.data as GithubData),
-      mainContent: parsedContent.content,
-    };
   } catch {
     return null;
   }
