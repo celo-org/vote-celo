@@ -11,7 +11,7 @@
   "dependencies": {
     "@celo/abis": "^9.0.2",
     "@celo/contractkit": "^4.1.0",
-    "@celo/rainbowkit-celo": "1.0.1",
+    "@celo/rainbowkit-celo": "1.2.1",
     "@headlessui/react": "^1.7.14",
     "@heroicons/react": "^2.0.18",
     "@rainbow-me/rainbowkit": "^1.0.3",
