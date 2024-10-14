@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@celo/abis": "^9.0.2",
+    "@celo/abis": "^11.0.0",
     "@celo/contractkit": "^4.1.0",
     "@celo/rainbowkit-celo": "1.0.1",
     "@headlessui/react": "^1.7.14",
